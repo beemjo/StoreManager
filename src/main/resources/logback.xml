@@ -1,0 +1,14 @@
+<configuration>
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+
+            <pattern>
+                %highlight(%-5level) %cyan(%d{HH:mm:ss.SSS}) [%thread] %magenta(%logger{36}) - %msg%n
+            </pattern>
+        </encoder>
+    </appender>
+
+    <root level="debug">
+        <appender-ref ref="CONSOLE" />
+    </root>
+</configuration>
