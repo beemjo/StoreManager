@@ -1,28 +1,29 @@
 package org.example.models;
 
+import jakarta.persistence.*;
 import lombok.*;
 
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@Entity
+@Table(name = "clients")
 public class Client {
 
-    @Builder.Default
-    private int id = generateId();
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Integer id;
 
     @NonNull
+    @Column(nullable = false)
     private String name;
 
     @NonNull
+    @Column(nullable = false)
     private String email;
 
     @NonNull
+    @Column(nullable = false)
     private String phone;
-
-    private static int counter = 1;
-
-    private static int generateId() {
-        return counter++;
-    }
 }

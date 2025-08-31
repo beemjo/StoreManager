@@ -2,9 +2,7 @@ package org.example.seeders;
 
 import lombok.Getter;
 import net.datafaker.Faker;
-import org.example.daos.ClientDaoImpl;
 import org.example.daos.OrderDaoImpl;
-import org.example.models.Client;
 import org.example.models.Order;
 import org.example.models.Product;
 
@@ -20,39 +18,32 @@ public class OrderSeeder {
     @Getter
     private final List<Order> orders = new ArrayList<>();
     private final OrderDaoImpl dao = new OrderDaoImpl();
-    public void init(List<Client> clients, List<Product> availableProducts) {
 
+    public void init(List<Product> availableProducts) {
         for (int i = 0; i < 20; i++) {
-            List<Product> productsInOrder = new ArrayList<>();
-            int numberOfProducts = faker.number().numberBetween(1, 4);
 
-            for (int j = 0; j < numberOfProducts; j++) {// boucle pr selec les produits
-                int index = faker.number().numberBetween(0, availableProducts.size() - 1);// random index
-                productsInOrder.add(availableProducts.get(index));// ajouter le prod selec a l order avec l index
 
-            }
+            Product randomProduct = availableProducts.get(faker.number().numberBetween(0, availableProducts.size() - 1));
+            int quantity = faker.number().numberBetween(1, 5);
 
-            double total = 0;
-            for (Product p : productsInOrder) {// boucle for every product in the order
-                total += p.getPrice();
-            }
 
-            LocalDate randomDate = LocalDate.of(//random date
+            LocalDate randomDate = LocalDate.of(
                     faker.number().numberBetween(2023, 2025),
-                    faker.number().numberBetween(1, 12), // careful: months must be 1–12
-                    faker.number().numberBetween(1, 28)  // safer: 1–28 for all months
+                    faker.number().numberBetween(1, 12),
+                    faker.number().numberBetween(1, 28)
             );
 
+            // creeer l ordre
             Order order = Order.builder()
-                    .clientId(faker.number().numberBetween(1, 30))
+                    .clientId(faker.number().numberBetween(1, 30)) // random client id
+                    .productId(randomProduct.getId())
+                    .quantity(quantity)
                     .date(randomDate)
-                    .total(total)
-                    .products(productsInOrder)
-                    .build();// make the order
+                    .build();
+
+
             dao.save(order);
             orders.add(order);
-
         }
     }
-
 }

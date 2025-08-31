@@ -1,32 +1,29 @@
 package org.example.models;
 
+import jakarta.persistence.*;
 import lombok.*;
 
+@Entity
+@Table(name = "products")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
 public class Product {
 
-    @Builder.Default
-    private int id = generateId();
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Integer id;
 
-    @NonNull
+    @Column(nullable = false)
     private String name;
 
-    @NonNull
+    @Column(nullable = false)
     private String description;
 
-    @NonNull
+    @Column(nullable = false)
     private double price;
 
-    @NonNull
+    @Column(nullable = false)
     private int quantity;
-
-
-    private static int counter = 1;
-
-    private static int generateId() {
-        return counter++;
-    }
 }
