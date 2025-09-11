@@ -1,176 +1,86 @@
 package org.example.daos;
 
 import org.example.models.Product;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.BeanPropertyRowMapper;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.PreparedStatementSetter;
+import org.springframework.jdbc.core.RowMapper;
+import org.springframework.stereotype.Repository;
 
-import java.sql.*;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
 import java.util.List;
-import java.util.ArrayList;
 
+@Repository
 public class ProductDaoImpl implements ProductDao {
-    private final Connection connection;
 
-    public ProductDaoImpl() {
-        connection = DatabaseConnection.getInstance().getConnection();
+    private final JdbcTemplate jdbcTemplate;
+
+    @Autowired
+    public ProductDaoImpl(JdbcTemplate jdbcTemplate) {
+        this.jdbcTemplate = jdbcTemplate;
         createTable();
     }
 
-    public void createTable() {
-        String sql = "CREATE TABLE IF NOT EXISTS products (" +
-                "id INT PRIMARY KEY AUTO_INCREMENT, " +
-                "name VARCHAR(100), " +
-                "description VARCHAR(255), " +
-                "price DOUBLE, " +
-                "quantity INT" +
-                ")";
-
-        try (Statement stmt = connection.createStatement()) {
-            stmt.execute(sql);
-            System.out.println("✅ Table 'products' ready.");
-        } catch (SQLException e) {
-            System.err.println("❌ Error creating table: " + e.getMessage());
-            e.printStackTrace();
-        }
+    private void createTable() {
+        String sql = """
+                CREATE TABLE IF NOT EXISTS products (
+                    id INT PRIMARY KEY AUTO_INCREMENT,
+                    name VARCHAR(100),
+                    description VARCHAR(255),
+                    price DOUBLE,
+                    quantity INT
+                )
+                """;
+        jdbcTemplate.execute(sql);
     }
 
-    @Override
-    public List<Product> findInStockProducts() {
-        List<Product> products = new ArrayList<>();
-        String sql = "SELECT * FROM products WHERE quantity > 0";
-        try (Statement stmt = connection.createStatement();
-             ResultSet rs = stmt.executeQuery(sql)) {
-            while (rs.next()) {
-                products.add(Product.builder()
-                        .id(rs.getInt("id"))
-                        .name(rs.getString("name"))
-                        .description(rs.getString("description"))
-                        .price(rs.getDouble("price"))
-                        .quantity(rs.getInt("quantity"))
-                        .build());
-            }
-        } catch (SQLException e) {
-            throw new RuntimeException("Error fetching in-stock products", e);
-        }
-        return products;
-    }
-
-
-    @Override
-    public List<Product> findByName(String keyword) {
-
-        List<Product> products = new ArrayList<>();
-        String sql = "SELECT * FROM products WHERE name LIKE ?";
-        try (PreparedStatement ps = connection.prepareStatement(sql)) {
-            ps.setString(1, "%" + keyword + "%");
-            ResultSet rs = ps.executeQuery();
-            while (rs.next()) {
-                products.add(Product.builder()
-                        .id(rs.getInt("id"))
-                        .name(rs.getString("name"))
-                        .description(rs.getString("description"))
-                        .price(rs.getDouble("price"))
-                        .quantity(rs.getInt("quantity"))
-                        .build());
-            }
-        } catch (SQLException e) {
-            throw new RuntimeException("Error finding products by name", e);
-        }
-        return products;
-    }
+    private final RowMapper<Product> rowMapper = new BeanPropertyRowMapper<>(Product.class);
 
     @Override
     public List<Product> findAll() {
-
-        List<Product> products = new ArrayList<>();
         String sql = "SELECT * FROM products";
-        try {
-            Statement stmt = connection.createStatement();
-
-            ResultSet rs = stmt.executeQuery(sql);
-            while (rs.next()) {
-                products.add(Product.builder()
-                        .id(rs.getInt("id"))
-                        .name(rs.getString("name"))
-                        .price(rs.getDouble("price"))
-                        .description(rs.getString("description"))
-                        .quantity(rs.getInt("quantity"))
-                        .build());
-            }
-
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        }
-        return products;
+        return jdbcTemplate.query(sql, rowMapper);
     }
 
     @Override
     public Product findById(Integer id) {
         String sql = "SELECT * FROM products WHERE id = ?";
-        try (PreparedStatement ps = connection.prepareStatement(sql)) {
-            ps.setInt(1, id);
-            ResultSet rs = ps.executeQuery();
-            if (rs.next()) {
-                return Product.builder()
-                        .id(rs.getInt("id"))
-                        .name(rs.getString("name"))
-                        .description(rs.getString("description"))
-                        .price(rs.getDouble("price"))
-                        .quantity(rs.getInt("quantity"))
-                        .build();
-            }
-        } catch (SQLException e) {
-            throw new RuntimeException("Error finding product with id " + id, e);
-        }
-        return null;
+        List<Product> result = jdbcTemplate.query(sql, rowMapper, id);
+        return result.isEmpty() ? null : result.get(0);
     }
 
     @Override
     public void save(Product product) {
-        String sql = """
-                INSERT INTO products (
-                name, description, quantity, price
-                ) Values (?, ?, ?, ?)
-                """;
-        try (PreparedStatement ps = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
-            ps.setString(1, product.getName());
-            ps.setString(2, product.getDescription());
-            ps.setInt(3, product.getQuantity());
-            ps.setDouble(4, product.getPrice());
-
-            ps.executeUpdate();
-        } catch (SQLException e) {
-            throw new RuntimeException("Error saving order for client " + product.getName(), e);
-        }
+        String sql = "INSERT INTO products (name, description, quantity, price) VALUES (?, ?, ?, ?)";
+        jdbcTemplate.update(sql, product.getName(), product.getDescription(), product.getQuantity(), product.getPrice());
     }
 
     @Override
     public Product update(Product product) {
         String sql = "UPDATE products SET name=?, description=?, price=?, quantity=? WHERE id=?";
-        try (PreparedStatement ps = connection.prepareStatement(sql)) {
-            ps.setString(1, product.getName());
-            ps.setString(2, product.getDescription());
-            ps.setDouble(3, product.getPrice());
-            ps.setInt(4, product.getQuantity());
-            ps.setInt(5, product.getId());
-            int rows = ps.executeUpdate();
-            if (rows > 0) {
-                return product;
-            }
-        } catch (SQLException e) {
-            throw new RuntimeException("Error updating product " + product.getId(), e);
-        }
-        return null;
+        int rows = jdbcTemplate.update(sql, product.getName(), product.getDescription(), product.getPrice(), product.getQuantity(), product.getId());
+        return rows > 0 ? product : null;
     }
-
 
     @Override
     public void delete(Product product) {
         String sql = "DELETE FROM products WHERE id=?";
-        try (PreparedStatement ps = connection.prepareStatement(sql)) {
-            ps.setInt(1, product.getId());
-            ps.executeUpdate();
-        } catch (SQLException e) {
-            throw new RuntimeException("Error deleting product " + product.getId(), e);
-        }
+        jdbcTemplate.update(sql, product.getId());
+    }
 
+    // --- Custom methods ---
+
+    @Override
+    public List<Product> findInStockProducts() {
+        String sql = "SELECT * FROM products WHERE quantity > 0";
+        return jdbcTemplate.query(sql, rowMapper);
+    }
+
+    @Override
+    public List<Product> findByName(String keyword) {
+        String sql = "SELECT * FROM products WHERE name LIKE ?";
+        return jdbcTemplate.query(sql, rowMapper, "%" + keyword + "%");
     }
 }

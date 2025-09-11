@@ -3,13 +3,17 @@ package org.example.services;
 import org.example.daos.ClientDao;
 import org.example.exceptions.ClientNotFoundException;
 import org.example.models.Client;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
 import java.util.List;
 
+@Service
 public class ClientServiceImpl implements ClientService {
 
     private final ClientDao clientDao;
 
+    @Autowired
     public ClientServiceImpl(ClientDao clientDao) {
         this.clientDao = clientDao;
     }

@@ -1,19 +1,22 @@
 package org.example.daos.jpa;
 
 import jakarta.persistence.EntityManager;
-import jakarta.persistence.TypedQuery;
+import jakarta.persistence.PersistenceContext;
 import org.example.daos.ProductDao;
 import org.example.models.Product;
+import org.springframework.context.annotation.Primary;
+import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
+@Repository
+@Primary
+@Transactional
 public class JpaProductDaoImpl implements ProductDao {
 
-    private final EntityManager em;
-
-    public JpaProductDaoImpl(EntityManager em) {
-        this.em = em;
-    }
+    @PersistenceContext
+    private EntityManager em;
 
     @Override
     public List<Product> findAll() {
@@ -28,39 +31,29 @@ public class JpaProductDaoImpl implements ProductDao {
 
     @Override
     public void save(Product product) {
-        em.getTransaction().begin();
         em.persist(product);
-        em.getTransaction().commit();
     }
 
     @Override
     public Product update(Product product) {
-        em.getTransaction().begin();
-        Product p = em.merge(product);
-        em.getTransaction().commit();
-        return p;
+        return em.merge(product);
     }
 
     @Override
     public void delete(Product product) {
-        em.getTransaction().begin();
         em.remove(em.contains(product) ? product : em.merge(product));
-        em.getTransaction().commit();
     }
 
 
     @Override
     public List<Product> findInStockProducts() {
-        return em.createQuery(
-                "SELECT p FROM Product p WHERE p.quantity > 0", Product.class
-        ).getResultList();
+        return em.createQuery("SELECT p FROM Product p WHERE p.quantity > 0", Product.class)
+                .getResultList();
     }
 
     @Override
     public List<Product> findByName(String keyword) {
-        return em.createQuery(
-                        "SELECT p FROM Product p WHERE LOWER(p.name) LIKE LOWER(:kw)", Product.class
-                )
+        return em.createQuery("SELECT p FROM Product p WHERE LOWER(p.name) LIKE LOWER(:kw)", Product.class)
                 .setParameter("kw", "%" + keyword + "%")
                 .getResultList();
     }
